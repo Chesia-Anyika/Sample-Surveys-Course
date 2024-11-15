@@ -1,0 +1,461 @@
+---
+title: "STA2050 - QUIZ 1"
+author: "Chesia Anyika"
+date: "2024-02-07"
+output:
+  html_document: default
+  word_document: default
+ID: '665567'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries
+
+```{r}
+library(gtools)
+```
+
+# Question 1
+
+**1.      An SRS of size 30 is taken from a population of size 100. The sample values are given below, and in the data file srs30.dat. 8 ,5, 2, 6 ,6 ,3, 8, 6, 10, 7 ,15, 9, 15, 3, 5, 6, 7, 10, 14 3, 4 ,17, 10, 6, 14 ,12, 7, 8 ,12, 9, (page 9)**
+
+**a)      What is the sampling weight for each unit in the sample? (2 marks)**
+
+The sampling weights are equal because this is a simple random sample. It can be computed using the formula:
+
+$$
+\frac{N}{n}
+$$
+
+> Where:
+>
+> $N$ is the Population size
+>
+> $n$ is the sample size
+
+I computed this as follows:
+
+```{r}
+N <- 100
+n <- 30 
+
+sampling_weights <- N/n
+
+cat('Sampling Weights: ', sampling_weights)
+```
+
+The sampling weight is $3.3333$.
+
+**b)      Use the sampling weights to estimate the population total, t. (4marks)**
+
+The formula for estimating population total is:
+
+$$
+\hat t = \sum_{i \in S} w_iy_i
+$$
+
+> Where:
+>
+> $w$ is the sampling weights
+>
+> $y$ is the value
+
+First I defined my y values in a vector
+
+```{r}
+srs30 <- c(8 ,5, 2, 6 ,6 ,3, 8, 6, 10, 7 ,15, 9, 15, 3, 5, 6, 7, 10, 14, 3, 4 ,17, 10, 6, 14 ,12, 7, 8 ,12, 9)
+
+#view the vector
+srs30
+```
+
+I then multiplied them by the sampling weight, and used the `sum()` function to get the sum of the product between each value and its sampling weight.
+
+```{r}
+#get estimated population total
+estimated_total <- sum(srs30 * sampling_weights)
+
+#View the result
+cat("Estimated Population Total:", estimated_total, "\n")
+```
+
+The Estimated Population Total is $823.3333$.
+
+**c)       Give a 95% CI for t. Does the fpc make a difference for this sample?(4marks)**
+
+The Confidence interval is calculated as follows:
+
+$$
+CI = P.E \pm ME \\
+ME = Zscore * SE
+$$
+
+> Where:
+>
+> $P.E$ is the Point Estimate
+>
+> $M.E$ is the margin of Error
+>
+> $S.E$ is the Standard Error
+
+I first computed the Standard Error. To calculate the standard error, we use the Variance of t formula as follows:
+
+$$
+V(\hat t) = N^2(1 - \frac{n}{N})\frac{s^2_y}{n}
+$$
+
+> Where:
+>
+> $N$ is the population size
+>
+> $n$ is the sample size
+>
+> $s$ is the standard deviation of y
+
+I computed this as follows:
+
+```{r}
+#compute the standard deviation
+sy <- sd(srs30)
+
+#View the standard deviation
+cat('Sample Standard Deviation: ', sy)
+```
+
+```{r}
+#compute the variance of the total
+V_t <- (N^2)*(1 - (n/N))*(((sy)^2)/n)
+
+#View the vatiance of the total
+cat('Variance of the total:', V_t)
+```
+
+The Standard Error $SE(t)$ is calculated by getting the square root of $V(\hat t)$, as follows:
+
+$$
+SE(t) = \sqrt{V(\hat t)}
+$$
+
+I computed this as follows:
+
+```{r}
+#compute the standard error
+SE_t <- sqrt(V_t)
+
+#view the standard error
+cat('Standard Error: ', SE_t)
+```
+
+I then computed the z_score associated with a 95% confidence level
+
+```{r}
+#define alpha, the critical value
+alpha <- 0.95
+
+#as the test is two tailed, get the diffeence of alpha from 1 and divide by a half
+alpha.neg <- 1-alpha
+alpha.half <- alpha.neg/2
+
+#define p 
+p <- 1-alpha.half
+
+#get the zscore using qnorm() function
+zscore <- qnorm(p) 
+
+#View the zscore
+cat("Z_score: ", zscore)
+```
+
+I then computed the Margin of Error by getting the product of the z_score and Standard Error, as follows
+
+```{r}
+#compute the margin of error
+ME_t <- zscore * SE_t
+
+#View the margin of error
+cat('Margin of error: ', ME_t)
+```
+
+I then calculated the Confidence interval by getting the sum and difference of the point estimate and the margin of error.
+
+```{r}
+#compute confidence interval
+lower <- estimated_total - ME_t
+upper <- estimated_total + ME_t
+
+#view the confidence interval
+cat('Confidence interval : [', lower, ', ', upper, ']')
+```
+
+The 95% confidence interval of the total estimate is:
+
+$$
+CI = [703.6593, 943.0074]
+$$
+
+------------------------------------------------------------------------
+
+# Question 2
+
+**2.       Suppose we have a population of 5 students enrolled for statistics course and a counsellor wants to find the average amount of time spent by each student in preparing for classes each week. The amount of time (in hours) each student spends per week is given by 7,3,6,10 and 4. If the counsellor takes a sample of three students WOR, obtain the sampling distribution of the sample mean. Compute the population mean and the standard error of the sampling distribution. (12marks)**
+
+First I defined the values given
+
+```{r}
+#Population 
+N = 5
+
+#vector of times spent preparing for each student
+times <- c(7, 3, 6, 10, 4)
+```
+
+I then used the `combinations()` function to get the data-frame of all possible samples of sample size 3, from the vector of population size 5, without replacement
+
+```{r}
+# Set the seed for random number generation
+set.seed(NULL)
+
+# Select an SRS of size n=3 from a population of size N=5 without replacement
+#library(gtools)
+samples1 <- combinations(n = 5, r = 3, v = times, repeats.allowed = FALSE)
+
+samples1
+```
+
+I then obtained the sample means of each sample by using the `apply()` function to apply the `mean()` function to each row of the data-frame I obtained above.
+
+```{r}
+#apply to each row of samples
+means_result <- apply(samples1, 1, mean)
+
+#add to the df
+samples1 <- as.data.frame(samples1)
+samples1$means <- means_result
+
+samples1
+#View the dataframe
+samples1
+```
+
+The sampling distribution of the sample means is as follows:
+
+```{r}
+cat('The sampling distribution of the Sample means is: \n', means_result)
+```
+
+These means can be represented using a histogram
+
+```{r}
+hist(samples1$means,breaks=20,col="gray",xlab="means")
+```
+
+I then calculated the population mean by using the `mean()` function on the `times` vector, which is the population of how much time students spend preparing each week.
+
+```{r}
+#get the population mean
+popmean <- mean(times)
+
+#view the result
+cat('The Population mean is: ', popmean)
+```
+
+I then obtained the Standard error as per the formula
+
+$$
+Formula : SE(y) = \sqrt{1 - (\frac{n}{N}) \frac{s^2}{n}} 
+$$
+
+```{r}
+#Step 1: calculate the variance
+var <- var(samples1$means)
+
+#define sample and population size
+n = 3
+N = 5
+
+#standard error
+SE <- sqrt(1 - ((n/N)*(var/n)))
+
+#View the result
+cat('The standard error is: ', SE)
+```
+
+The computed standard error is:
+
+$$ SE = 0.8819171 $$
+
+------------------------------------------------------------------------
+
+# Question 3
+
+**3. John took a stratified sample of New York City food stores. The sampling frame consisted of 1408 food stores with at least 4000 square feet of retail space. The population of stores was stratified into three strata using median household income within the zip code. The prices of a "market basket" of goods were determined for each store; the goal of the survey was to investigate whether prices differ among the three strata. John used the logarithm of total price for the basket as the response y. Results are given in the following table:**
+
+| **Stratum h**     | $N{h}$ | $n{h}$ | $\bar y{h}$ | $S{h}$ |
+|-------------------|--------|--------|-------------|--------|
+| **Low Income**    | 190    | 21     | 3.925       | 0.037  |
+| **Middle Income** | 407    | 14     | 3.938       | 0.052  |
+| **Upper Income**  | 811    | 22     | 3.942       | 0.070  |
+
+a)  **The planned sample size was 30 in each stratum; this was not achieved because some stores went out of business while the data were being collected. What are the advantages and disadvantages of sampling the same number of stores in each stratum?  (4 marks)**
+
+| Advantages                                                                                                                                                             | Disadvantages                                                                                                                                            |
+|-------------------------------------|-----------------------------------|
+| **Lessens Bias** - having the same sample size per stratum lessens the bias in your data, as one stratum is not dominating the analysis as compared to another.        | **Differences in variance of samples**: samples may differ in variance, thus having a single sample size for all of them may not yield accurate results. |
+| **Allows for Uniformity** - having the same sample size allows for uniformity of interpretations in your analysis, as you do not have to define multiple sample sizes. |                                                                                                                                                          |
+
+b)      Estimate $\bar y{\mu}$ for these data and give a 95% CI. (4marks)
+
+First I created a dataframe with all this information
+
+```{r}
+#creating a data frame with the provided information
+data <- data.frame(
+  Stratum = c("Low Income", "Middle Income", "Upper Income"),
+  N_h = c(190, 407, 811),
+  n_h = c(21, 14, 22),
+  mean_y_h = c(3.925, 3.938, 3.942),
+  sd_y_h = c(0.037, 0.052, 0.070)
+)
+
+data
+```
+
+I then computed the y estimate as per the following formula
+
+$$
+\bar y_{str} = \sum^3_{h=1}\frac{N_h}{N}\bar y_h
+$$
+
+> Where:
+>
+> $N_h$ is the stratum size
+>
+> $N$ is the population size
+>
+> $\bar y_h$ is the mean per stratum
+
+I computed this as follows:
+
+```{r}
+#define parameters
+N <- 1408
+
+#compute the y estimate
+y_str <- sum((data$N_h/N)*data$mean_y_h)
+
+#View the y estimate
+cat('Y estimate: ', y_str)
+```
+
+The computed y estimate is :
+
+$$
+\bar y_{\mu} = 3.93855
+$$
+
+To compute the confidence interval, I followed the formulas
+
+$$
+CI = PE \pm ME\\
+ME = Zscore * SE
+$$
+
+> Where:
+>
+> $PE$ is the point estimate ( $\bar y_\mu$ )
+>
+> $ME$ is the margin of error
+>
+> $SE$ is the standard error
+
+First I computed the standard error. For this I needed the variance of the estimate, which i computed as per the formula:
+
+$$
+\hat V(\bar y_{str}) = \sum_{h=1}^3(\frac{N_h}{N})^2 \frac{s^2_h}{n_h}
+$$
+
+> Where:
+>
+> $N_h$ is the total size per stratum
+>
+> $N$ is the population size
+>
+> $s_h$ is the standard deviation per stratum
+>
+> $n_h$ is the sample size per stratum
+
+I computed this as follows
+
+```{r}
+#compute the variance of the mean estimate
+V_ystr <- sum(((data$N_h/N)^2)*((data$sd_y_h)^2)/data$n_h)
+
+#view the variance of the mean estimate
+cat('Variance of the mean estimate: ', V_ystr)
+```
+
+The standard error of the variance estimate can be gotten as follows:
+
+$$
+SE(y_{str}) = \sqrt{\hat V(\bar y_{str})}
+$$
+
+```{r}
+#compute the standard error
+SE_ystr <- sqrt(V_ystr)
+
+#show the standard error
+cat('Standard error: ', SE_ystr)
+```
+
+I then computed the Z score for the 95% confidence interval as follows:
+
+```{r}
+#define alpha, the critical value
+alpha <- 0.95
+
+#as the test is two tailed, get the diffeence of alpha from 1 and divide by a half
+alpha.neg <- 1-alpha
+alpha.half <- alpha.neg/2
+
+#define p 
+p <- 1-alpha.half
+
+#get the zscore using qnorm() function
+zscore <- qnorm(p) 
+
+#View the zscore
+cat("Z_score: ", zscore)
+```
+
+I then computed the Margin of Error by multiplying the standard error and the Z score:
+
+```{r}
+#compute the margin of error
+ME_ystr <- zscore * SE_ystr
+
+#view the margin of error
+cat('margin of error: ', ME_ystr)
+```
+
+I then computed the confidence interval by getting the sum and difference of the Point estimate, and the margin of error
+
+```{r}
+#compute lower and upper bounds
+lower <- y_str - ME_ystr
+upper <- y_str + ME_ystr
+
+#view the confidence interval 
+cat('Confidence interval : [', lower, ', ', upper, ']')
+```
+
+The computed confidence interval is:$$
+CI = [3.91983 ,  3.957269]
+$$
+
+c)       Is there evidence that prices are different in the three strata? (2marks)
+
+The narrow confidence interval suggests low sampling variability in the estimates of prices between the three strata. However, it's crucial to consider that factors beyond sampling error, such as the inability to reach some stores and missing market basket items, may have influenced the results. These non-sampling errors could potentially bias the estimates or affect their generalisability to the population. Therefore, while the confidence interval provides some indication, it's essential to acknowledge the presence of non-sampling errors when interpreting the results.

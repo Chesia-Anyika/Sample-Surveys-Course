@@ -1,0 +1,316 @@
+---
+title: "STA2050 - final exam"
+author: "Chesia Anyika"
+date: "2024-04-03"
+output:
+  word_document: default
+  html_document: default
+---
+
+# Question 1
+
+**(a)    A state department of agriculture desires to estimate the number of acres under corn plantation within the state. Suggest possible sampling units and frames. (2marks )**
+
+Sampling unit: The sampling unit could be a single corn plantation.
+
+Sampling frame: The sampling frame could be a list of all corn plantations within the state.
+
+**(b)    How do we evaluate the goodness of an estimator? (2marks)**
+
+We can evaluate the goodness of an estimator by taking into account the amount of bias in the chosen estimation method, by examining sampling methods used.
+
+We can also take into account the accuracy of the metric in estimating the population parameter, by taking into account the standard error and the confidence interval.
+
+# Question 2
+
+## Libraries
+
+```{r}
+#for general data manipulation and plotting
+library(tidyverse)
+```
+
+(a)    Foresters want to estimate the average age of trees in a stand. Determining age is cumbersome, because one needs to count the tree rings on a core taken from the tree. In general, though, the older the tree, the larger the diameter, and diameter is easy to measure. The foresters measure the diameter of all 1132 trees and find that the population mean equals 10.3. They then randomly select 20 trees for age measurement.
+
+| Tree no | Diameter X | Age y | Tree no | Diameter X | Age y |
+|---------|------------|-------|---------|------------|-------|
+| 1       | 12         | 125   | 11      | 5.7        | 61    |
+| 2       | 11.4       | 119   | 12      | 8          | 80    |
+| 3       | 7.9        | 83    | 13      | 10.3       | 114   |
+| 4       | 10.5       | 85    | 14      | 12         | 147   |
+| 5       | 7.9        | 99    | 15      | 9.2        | 122   |
+| 6       | 9          | 117   | 16      | 8.5        | 106   |
+| 7       | 7.3        | 69    | 17      | 7.0        | 82    |
+| 8       | 10.2       | 133   | 18      | 10.7       | 88    |
+| 9       | 11.7       | 154   | 19      | 9.3        | 97    |
+| 10      | 11.3       | 168   | 20      | 8.2        | 99    |
+|         |            |       |         |            |       |
+
+**a)       Draw a scatterplot of y vs. x.  (3 marks)**
+
+First I defined the two vectors for diameter and age as follows:
+
+```{r}
+#define the diameter vector
+diameterx <- c(12, 11.4, 7.9, 10.5, 7.9, 9, 7.3, 10.2, 11.7, 11.3, 5.7, 8, 10.3, 12, 9.2, 8.5, 7.0, 10.7, 9.3, 8.2)
+
+#check length - should be 20
+l1 <- length(diameterx)
+
+cat('Length of diameter vector:', l1)
+```
+
+```{r}
+#define the diameter vector
+agey <- c(125, 119, 83, 85, 99, 117, 69, 133, 154, 168, 61, 80, 114, 147, 122, 106, 82, 88, 97, 99)
+
+#check length - should be 20
+l2 <- length(agey)
+
+cat('Length of age vector:', l2)
+```
+
+I then plotted a scatterplot of `age` against `diameter` as follows:
+
+```{r}
+#create a dataframe
+trees <- data.frame(diameterx, agey)
+  
+#plot the scatterplot with a regression line
+ggplot(trees, aes(x=diameterx, y=agey)) +
+  geom_point(size=2) +
+  geom_smooth(method="lm", se=FALSE)
+  
+```
+
+The scatter-plot shows an overall positive trend between the age and diameter variables, suggesting a linear relationship between the two. The regression line fitted shows this as well.
+
+**b)      Estimate the population mean age of trees in the stand using ratio estimation and give an approximate standard error for your estimate.  (7marks)**
+
+First I defined my parameters as follows
+
+```{r}
+#define population parameters
+N = 1132
+mu = 10.3
+
+#define sample parameters
+n = 20
+x_bar <- mean(diameterx)
+y_bar <- mean(agey)
+```
+
+```{r}
+#compute the ratio estimate as follows
+y_hat = y_bar * (mu / x_bar)
+
+#view the result 
+cat('Ratio estimate: ', y_hat)
+```
+
+compute the standard deviation
+
+```{r}
+#sample standard deviation 
+sd_y = sd(agey) 
+sd_x = sd(diameterx) 
+
+#sample covariance
+cov = cov(diameterx, agey)
+Ratio = y_bar / mu
+
+MeanSquaredError = ((N-n)/(n*N)) * (sd_y^2 + Ratio^2 * sd_x^2 - 2 * Ratio * cov)
+
+SE_1 = sqrt(MeanSquaredError)
+
+#view the standard error
+cat('Standard Error: ', SE_1)
+```
+
+**c)        Repeat (b) using regression estimation. (7marks)**
+
+```{r}
+#compute the regression estimate
+beta = cov / sd_x^2
+y_reg = y_bar + beta * (mu - x_bar)
+
+cat('Regression estimate: ', y_reg)
+```
+
+```{r}
+# Calculate the approximate standard error for regression estimate
+rho = cor(diameterx, agey) # correlation coefficient
+
+V_reg = ((N-n)/(n*N)) * sd_y^2 * (1 - rho^2)
+SE_2 = sqrt(V_reg)
+
+cat('Standard Error: ', SE_2)
+```
+
+**d)      Label your estimates on your graph. How do they compare?  (3marks)**
+
+# Question 3
+
+## Libraries
+
+```{r}
+#library with the spanish.dat dataset
+library(SDAResources)
+
+#for the survey design
+library(survey)
+```
+
+**a)       A language school owner takes an SRS of 10 of the 72 Introductory Spanish classes offered by the school. Each student in each of the sampled classes is given a vocabulary test and is also asked whether he or she is planning a trip to a Spanish-speaking country in the next year. The data are in file spanish.dat. CLUSTER**
+
+**I.            Estimate the total number of students planning a trip to a Spanish-speaking country in the next year, and give a 95% CI. (6 marks)**
+
+**II.            Estimate the mean vocabulary test score for Introductory Spanish students in the language school, and give a 95%  (6 marks)**
+
+I computed both questions using survey design, as follows:
+
+First I imported the `spanish.dat` data-set into r and examined it.
+
+```{r}
+data("spanish")
+
+#view the data
+View(spanish)
+head(spanish)
+```
+
+I then defined the sampling weights as follows:
+
+```{r}
+#define sampling weight
+spanish$sampwt <- 72/10
+
+#print the data
+head(spanish)
+```
+
+I then defined the survey design, using the `svydesign()` function.
+
+```{r}
+#survey design
+design <- svydesign(ids = ~class, weights = ~sampwt, data = spanish)
+
+#estimate the total and mean
+survey_means <- svytotal(~score + trip, design)
+survey_means
+```
+
+1.  Answer(I): The total estimate of students planning a trip to a spanish speaking country$(\hat \tau_t)$ is:
+
+$$
+\hat \tau_t = 453.6 
+$$
+
+with a standard error ( $SE_t$ ) of:
+
+$$
+SE_t = 120.5
+$$
+
+2.  Answer(II): The mean estimate for vocabulary test scores is:
+
+$$
+\hat y = 94262.4
+$$
+
+with a standard error ( $SE_s$ ) of:
+
+$$
+SE_s = 7301.4
+$$
+
+I then computed the Confidence Interval as per the following formula
+
+$$
+CI = PE \pm ME\\
+ME = SE*Zscore\\
+$$First I computed the Z-score associated with a 95% confidence interval
+
+```{r}
+#define alpha and p for a two-tailed test
+alpha <- 0.95
+alpha.neg <- 1 - alpha
+alpha.half <- alpha.neg/2
+
+p <- 1-alpha.half
+cat('p: ', p)
+```
+
+```{r}
+#perform z-test
+Z_score <- qnorm(p)
+
+#Print the z_score
+cat('Zscore: ', Z_score)
+```
+
+As both standard errors for the total and mean estimates were computed above, I used them to compute their respective Margin of Errors as follows:
+
+### CI for Total Estimate
+
+```{r}
+#define standard of error
+SE_t = 120.5
+
+#compute margin of error
+ME_t <- SE_t*Z_score
+
+#view the margin of error: 
+cat('Margin of error:', ME_t )
+```
+
+```{r}
+#define the point estimate 
+PE_t <- 453.6
+
+#compute the upper and lower bounds of the confidence interval
+lower <- PE_t - ME_t
+upper <- PE_t + ME_t
+
+#View the confidence interval
+cat("Confidence interval for total estimate: [", lower, ',', upper, ']' )
+```
+
+**Answer (I):** The confidence interval computed is:
+
+$$ CI = [217.4243 , 689.7757]$$
+
+### CI for mean estimate
+
+```{r}
+#define standard of error
+SE_t = 7301.4
+
+#compute margin of error
+ME_t <- SE_t*Z_score
+
+#view the margin of error: 
+cat('Margin of error:', ME_t )
+```
+
+```{r}
+#define the point estimate 
+PE_t <- 94262.4
+
+#compute the upper and lower bounds of the confidence interval
+lower <- PE_t - ME_t
+upper <- PE_t + ME_t
+
+#View the confidence interval
+cat("Confidence interval for total estimate: [", lower, ',', upper, ']' )
+```
+
+The confidence interval computed is:
+
+$$
+CI = [
+79951.92 , 108572.9 
+]
+$$
+
+**b)      An industry produces customized truck bodies in 20 plants scattered throughout the country. Only a small number of truck bodies are completed at each plant on any given day. For a particular day, it is desired to estimate the average worker-hours of work for items completed that day in the industry. Discuss the relative merits of cluster sampling (plants as clusters) versus stratified random sampling (plants as strata) for estimating the desired average. Which design do you recommend? (4marks )**

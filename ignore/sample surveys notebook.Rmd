@@ -1,0 +1,667 @@
+---
+title: "Sample surveys week 2"
+output: html_document
+date: "2024-01-17"
+---
+
+### Libraries
+
+```{r}
+#load the libraries
+library(survey)
+library(sampling)
+library(SDAResources)
+library(gtools)
+library(tidyverse)
+```
+
+# Week 2
+
+### Selecting a SRS
+
+#### 1. Base R
+
+##### Without Replacement
+
+```{r}
+# Set the seed for random number generation
+set.seed(100)
+
+# Select an SRS of size n=4 from a population of size N=10 without replacement
+srs4 <- sample(1:10, 4, replace = FALSE)
+
+srs4
+```
+
+```{r}
+# Set the seed for random number generation
+set.seed(108742) #for reproducability
+
+# Select an SRS of size n=4 from a population of size N=10 without replacement
+srs4 <- sample(1:10, 4, replace = FALSE)
+
+srs4
+```
+
+```{r}
+# Set the seed for random number generation
+set.seed(NULL)
+
+# Select an SRS of size n=4 from a population of size N=10 without replacement
+srs4 <- sample(1:10, 4, replace = FALSE)
+
+srs4
+```
+
+```{r}
+#run without setting new seed
+sample(1:10, 4, replace = FALSE)
+
+set.seed(108742)
+
+sample(1:10, 4, replace = FALSE)
+```
+
+##### With Replacement
+
+```{r}
+set.seed(1001)
+
+srswr4 <- sample(1:10, 4, replace = TRUE)
+srswr4
+```
+
+```{r}
+set.seed(108742)
+
+srswr4 <- sample(1:10, 4, replace = TRUE)
+srswr4
+```
+
+```{r}
+set.seed(NULL)
+
+srswr4 <- sample(1:10, 4, replace = TRUE)
+srswr4
+```
+
+```{r}
+set.seed(1001)
+
+srswr4 <- sample(1:6, 2, replace = TRUE)
+srswr4
+```
+
+#### 2. Sampling package
+
+```{r}
+#seed
+set.seed(1329)
+
+# Select an SRS of size n=4 from a population of size N=10 without replacement.
+s1<-srswor(4,10)
+
+s1
+#The function returns a vector of length N, with 1s in place of the units selected for the sample
+```
+
+```{r}
+#view the units selected
+(1:10)[s1 == 1]
+```
+
+```{r}
+# Select an SRS of size n=4 from a population of size N=10 with replacement.
+set.seed(35882)
+
+s2<-srswr(4,10)
+
+s2
+```
+
+```{r}
+#View the units chosen
+(1:10)[s2!=0]
+```
+
+```{r}
+#View replicates
+s2[s2!=0]
+```
+
+```{r}
+
+popdf <- data.frame(popid = 1:10)
+popdf
+getdata(popdf, s2)
+```
+
+```{r}
+data("agpop")
+
+N <- nrow(agpop)
+index <- srswor(300, N)
+agsrs2 <- getdata(agpop, index)
+#alt > agsrs2 <- agpop[(1:N)[index == 1],]
+View(agsrs2)
+```
+
+# Week 3
+
+### Histograms
+
+```{r}
+#1992
+hist(agsrs$acres92,breaks=20,col="gray",xlab="Acres devoted to farms, 1992",
+main="Histogram: Number of acres devoted to farms, 1992")
+```
+
+```{r}
+#87
+hist(agsrs$acres87,breaks=20,col="gray",xlab="Acres devoted to farms, 1992",
+main="Histogram: Number of acres devoted to farms, 1987")
+```
+
+All the data is skewed rightwards/ positively. (data is skewed towards the direction of the tail)
+
+### T.tests
+
+```{r}
+#1992
+t.test(agsrs$acres92)
+```
+
+```{r}
+#mean
+means <- c(mean(agsrs$acres92), mean(agsrs$acres87), mean(agsrs$acres82))
+means
+```
+
+### Class example
+
+#### Question 1
+
+1.  enumerate all possible samples (WOR) of size 2
+
+```{r}
+#library(gtools)
+#vector of incomes
+income <- c(15600, 14900, 16600, 16400, 15500)
+
+#samples
+samples <- combinations(n = 5, r = 2, v = income, repeats.allowed = FALSE)
+
+samples
+```
+
+2.  Show that all sample means give an unbiased estimate of population mean
+
+```{r}
+#obtain the sample means for each sample
+#function for creating means
+means_func <- function(samples) {
+  return(mean(samples))
+}
+
+#apply to each row of samples
+means_result <- apply(samples, 1, means_func)
+
+#add to the df
+samples <- as.data.frame(samples)
+samples$means <- means_result
+samples
+```
+
+```{r}
+#calculate the overall sample mean
+sample_mean <- mean(samples$means)
+cat('sample_mean:' , sample_mean)
+```
+
+```{r}
+#calculate the population mean
+pop_mean <- mean(income)
+cat('population mean:', pop_mean)
+```
+
+The sample and population means are the same, showing that the sample mean gives an unbiased estimator of the population mean
+
+#### Question 2
+
+1.  Obtain the sampling distribution of the sample mean
+
+```{r}
+#create a vector with the population of time studying
+time <- c(7, 3, 6, 10, 4)
+
+# obtain sample distribution given sampe of 3 without replacment
+sample_dist <- combinations(n = 5, r = 3, v = time, repeats.allowed = FALSE)
+
+sample_dist
+```
+
+```{r}
+#create mean function
+mean_func <- function(sample_dist){
+  return(mean(sample_dist))
+}
+
+#apply mean function per row
+means <- apply(sample_dist, 1, mean_func)
+
+#add to sampling data frame
+sample_dist <- as.data.frame(sample_dist)
+sample_dist$means <- means
+
+sample_dist
+```
+
+```{r}
+#plot the histogram
+hist <- ggplot(sample_dist, aes(x=means)) + 
+  geom_histogram()
+hist
+```
+
+2.  Compute the population mean and the sample mean
+
+```{r}
+#sample mean
+sMean <- mean(sample_dist$means)
+pMean <- mean(time)
+
+cat('Sample mean: ', sMean, '\n', 'Population mean: ', pMean)
+```
+
+The population and sample means are the same, thus the samples are good estimators of the population mean
+
+3.  Calculate the standard error of the sampling distribution
+
+$$
+Formula : SE(y) = \sqrt{1 - (\frac{n}{N}) \frac{s^2}{n}} 
+$$
+
+```{r}
+#calculate the variance
+var <- var(sample_dist$means)
+
+#define sample and population size
+n = 3
+N = 5
+
+#standard error
+SE <- sqrt(1 - ((n/N)*(var/n)))
+SE
+```
+
+```{r}
+
+```
+
+# Week 4
+
+Class example
+
+```{r}
+#vector
+age <- c(27, 32, 33, 26, 43, 52, 28, 25)
+
+#get all the possible samples
+sample <- combinations(n = 8, r = 4, v = age, repeats.allowed = FALSE)
+sample
+```
+
+```{r}
+#calculate the population proportion
+Nc = 3
+N = 8
+Ageprop <- Nc/N
+Ageprop
+```
+
+```{r}
+# Function to calculate the proportion of ages above a certain threshold
+calculate_proportion_above <- function(sample, threshold) {
+  above_threshold <- sum(sample >= threshold)
+  proportion_above <- above_threshold / length(sample)
+  return(proportion_above)
+}
+
+# Define the threshold age
+threshold_age <- 33
+
+# Calculate the proportion of ages above the threshold for each sample
+proportions <- apply(samples, 1, calculate_proportion_above, threshold = threshold_age)
+
+#convert samples into a dataframe
+sample <- as.data.frame(sample)
+
+#add proportions to rhe dataframe
+sample$props <- proportions
+
+#view 
+View(sample)
+```
+
+```{r}
+#plot the histogram
+hist <- ggplot(sample, aes(x=props)) + 
+  geom_histogram()
+hist
+```
+
+```{r}
+meansp <- mean(sample$props)
+meansp
+```
+
+```{r}
+sd <- sd(sample$props)
+sd
+```
+
+Example 2
+
+```{r}
+income <- c(15600, 14900, 16600, 16400, 15500)
+
+samples <- combinations(n = 5, r = 2, v = income, repeats.allowed = FALSE)
+samples
+```
+
+```{r}
+# Define the threshold age
+threshold_income <- 15500
+
+# Calculate the proportion of ages above the threshold for each sample
+proportions <- apply(samples, 1, calculate_proportion_above, threshold = threshold_income)
+
+#convert samples into a dataframe
+samples <- as.data.frame(samples)
+
+#add proportions to rhe dataframe
+samples$props <- proportions
+
+#view 
+samples
+```
+
+```{r}
+#plot the histogram
+hist <- ggplot(samples, aes(x=props)) + 
+  geom_histogram()
+hist
+```
+
+```{r}
+meansp <- mean(samples$props)
+meansp
+```
+
+```{r}
+popp <- 3/5 
+popp
+```
+
+## Strata Example
+
+```{r}
+#create the dataset
+Hour <- c(35, 43, 36, 39, 28, 28, 29, 25, 38, 27, 26, 32, 29, 40, 35, 41, 37, 31, 45, 34, 27, 15, 4, 41, 49, 25, 10, 30, 8, 14, 12, 15, 30, 32, 21, 20, 34, 7, 11, 24)
+
+#check for length, shoud be 40
+length(Hour)
+```
+
+```{r}
+Area <- c(rep(1, 20), rep(2, 8), rep(3, 12))
+
+Area
+```
+
+```{r}
+TVhour <- cbind(Hour, Area)
+head(TVhour)
+```
+
+```{r}
+y <- Hour
+stratum <- Area
+
+table(stratum)
+```
+
+```{r}
+tapply()
+```
+
+# Week 5
+
+## Strata Example 2
+
+```{r}
+Villages <- c(2, 5, 1, 9, 6, 7, 0, 4, 7, 0, 5, 0, 0, 3, 0, 21, 11, 7, 5, 6, 19, 5, 24, 30, 24, 3, 10, 4, 11, 38, 11, 4, 46, 4, 18, 1, 19, 30, 42, 20, 38, 29, 22, 31, 28, 66, 41, 15)
+
+length(Villages)
+```
+
+```{r}
+15 + 10 + 12 + 11 
+```
+
+```{r}
+#create stratum vector
+stratum <- c(rep(1, 15), rep(2, 10), rep(3, 12), rep(4, 11)) 
+
+length(stratum)
+```
+
+```{r}
+y <- Villages
+```
+
+```{r}
+table(stratum)
+```
+
+```{r}
+y1 <- y[stratum == 1]
+n1 = length(y1)
+y1_bar = mean(y1)
+s1 = sd(y1)
+cat('n1 : ', n1, 'mean1: ', y1_bar, 's1: ', s1)
+```
+
+```{r}
+y2 <- y[stratum == 2]
+n2 = length(y2)
+y2_bar = mean(y2)
+s2 = sd(y2)
+cat('n2 : ', n2, 'mean2: ', y2_bar, 's2: ', s2)
+```
+
+```{r}
+y3 <- y[stratum == 3]
+n3 = length(y3)
+y3_bar = mean(y3)
+s3 = sd(y3)
+cat('n3 : ', n3, 'mean3: ', y3_bar, 's3: ', s3)
+```
+
+```{r}
+y4 <- y[stratum == 4]
+n4 = length(y4)
+y4_bar = mean(y4)
+s4 = sd(y4)
+cat('n4 : ', n4, 'mean4: ', y4_bar, 's4: ', s4)
+```
+
+```{r}
+#table summary
+stratum_vector <- c(1, 2, 3, 4)
+nVec <- c(n1, n2, n3, n4)
+meanVec <- c(y1_bar, y2_bar, y3_bar, y4_bar)
+sdVec <- c(s1, s2, s3, s4)
+
+table <- cbind(stratum_vector, nVec, meanVec, sdVec)
+table
+```
+
+```{r}
+N1 = 275
+N2 = 146
+N3 = 93
+N4 = 62
+
+N = N1 + N2 + N3 + N4
+
+cat('N: ', N)
+```
+
+```{r}
+#mean estimation
+y_bar = (N1*y1_bar + N2*y2_bar + N3*y3_bar + N4*y4_bar)/N
+
+cat('mean estimate: ', y_bar)
+```
+
+```{r}
+#variance for mean
+Var_ybar = ((N1/N)^2)*((N1 - n1)/N1)*(s1^2)/n1 + ((N2/N)^2)*((N2-n2)/N2)*(s2^2)/n2 + ((N3/N)^2)*((N3-n3)/N3)*(s3^2)/n3 + ((N4/N)^2)*((N4-n4)/N4)*(s4^2)/n4
+
+cat('Variance Estimate: ', Var_ybar)
+```
+
+```{r}
+#estimation for total and its variance
+tau_hat <- N*y_bar
+
+Var_tau <- (N^2)*Var_ybar
+
+cat('total: ', tau_hat, 'Variance: ', Var_tau )
+```
+
+```{r}
+#dof
+a1 = N1*(N1-n1)/n1
+a2 = N2*(N2-n2)/n2
+a3 = N3*(N3-n3)/n3
+a4 = N4*(N4-n4)/n4
+
+cat(a1, a2, a3, a4)
+```
+
+```{r}
+d = ((a1*(s1^2) + a2*(s2^2) + a3*(s3^2) + a4*(s4^2))^2)/
+  (((a1*(s1^2))^2)/(n1-1)+((a2*(s2^2))^2)/(n2-1) + ((a3*(s3^2))^2)/(n3-1) + ((a4*(s4^2))^2)/(n4-1))
+d
+dof = 30
+```
+
+```{r}
+#95% confidence interval for mean and total estimation
+CI95_ybar <- y_bar + (Var_ybar^0.5)*qt(c(.025, .975), dof)
+CI95_ybar
+
+```
+
+```{r}
+CI95_tau <- tau_hat + (Var_tau^0.5)*qt(c(.025, .975), dof)
+CI95_tau
+```
+
+# Week 8
+
+```{r}
+#create data frame
+Volume <- c(7030, 6720, 6850, 7210, 7150, 7370, 7000, 6930, 6570, 6910, 7380)
+Plot.sampled <- c(4, 29, 54, 79, 104, 129, 154, 179, 204, 229, 254)
+df <- data.frame(Volume, Plot.sampled)
+df
+```
+
+```{r}
+n = round(520/25)
+n
+```
+
+```{r}
+# Create a vector by repeating Volume values
+yi <- rep(df$Volume, df$Plot.sampled)
+```
+
+```{r}
+sum(Volume)
+```
+
+```{r}
+Pop.mean <- sum(Volume)/n
+cat('Estimator of Population mean:', Pop.mean )
+```
+
+Estimated variance
+
+```{r}
+variance = sum((Volume - Pop.mean)^2)/n - 1
+cat('Estimator of Population Variance:', variance 
+```
+
+# Week 10
+
+Plot the scatter plot of given data
+
+```{r}
+x <- c(39, 43, 21, 64, 57, 47, 28, 75, 34, 52)
+y <- c(65, 78, 52, 82, 92, 89, 73, 98, 56, 73)
+
+df <- data.frame(x, y)
+
+ggplot(df, aes(x=x, y=y)) +
+  geom_point(size=2) +
+  geom_smooth(method="lm", se=FALSE) 
+```
+
+```{r}
+# Fit linear regression model
+model <- lm(y ~ x, data = df)
+
+# Print the summary of the model
+summary(model)
+```
+
+The Regression equation is:
+
+$$\hat y = 40.81 + 0.76x$$
+
+Where:
+
+-   $\hat y$ represents the predicted value of y.
+
+-   $x$ is the predictor variable.
+
+-   $\beta_1$ is 0.76
+
+-   $\beta_0$ is 40.81
+
+Given the following formula for regression estimator of the population mean
+
+$$
+\mu_L^n = \hat y - \beta_1 (\bar x - \mu_x)
+$$
+
+```{r}
+ybar <- mean(y) #75.8
+mux <- 52
+xbar <- mean(x) #46
+beta1 <- 0.76
+
+est <- ybar - (beta1*(xbar - mux))
+
+cat('Estimator of Population Mean:', est)
+```
+
+```{r}
+summary(aov(x~y))
+```
+
+what is the mean square error
